@@ -1,7 +1,7 @@
 # produce test message to topic (TOPIC is given parameter from cli)
-RESTURL="kafka-rest-prod01.messagehub.services.us-south.bluemix.net"
+RESTURL="RESTURL"
 PORT="443" 
-APIKEY="qvq0cKESh4dgHLK5mWOf92Z8qiUz43rMnwCPc88pZvFYVBGO"
+APIKEY="APIKEY"
 TOPIC="$1"
 MESSAGE="$2"
 
