@@ -13,7 +13,7 @@ else {
 	else
 	curl -v -X POST -H "Content-Type: application/json" \
              -H "X-Auth-Token: $APIKEY" \
-             --data '{"records":[{"value":"$MESSAGE"}]}' \
+             --data '{"records":[{"value":"'$MESSAGE'"}]}' \
              "https://$RESTURL:$PORT/topics/$TOPIC"
 	fi
 }
