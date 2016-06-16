@@ -81,9 +81,9 @@ To create a trigger, use following command:
 ```
 wsk trigger create <triggername> -p topic '<topic>' -p polling <milliseconds> --feed messagehub/kafkaFeed
 ```
-- <triggername> is the unique name of a trigger. This value is also used to create the consumer instance for kafka.
+- triggername is the unique name of a trigger. This value is also used to create the consumer instance for kafka.
 
 **IMPORTANT**: This name must unique in the whole message hub instance.
-- <topic> is used for listening on a message hub topic for a trigger
-- <polling> is used to define the interval of polling, default value is 5000
+- topic> is used for listening on a message hub topic for a trigger
+- polling is used to define the interval of polling, default value is 5000
 - messagehub/kafkaFeed create the feed, so that lifecycle events can control the trigger creation/deletion
