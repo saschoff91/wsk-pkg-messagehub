@@ -39,31 +39,51 @@ Following nodejs application http interfaces exists for communication:
 
 
 #Whisk side implementation
-To get the openwhisk package for message hub, do following commands.
+When this package is correctly created, you have to create a binding for all required parameters.
 
-
-
-##Application as feed source
-
+```
+wsk package update messagehub -p resturl '<messageHubRestURL>' -p restport '443' -p apikey '<apikey>' 
+```
+To check, if you bind parameters correctly, perfom:
+```
+wsk package get messagehub parameters
+```
 
 ##Available Actions
 Following whisk actions are available in *messagehub* packages:
 
-| action             | parameters       | request| description |
-| :-------------------|:-----------------|:-------|:---------------------------|
-| /showTopic         | -                | GET    |Show all topics of the given message hub instance.|
-| /createTopic       |  topic           | POST   |Create a new topic.|
-| /deleteTopic       |  topic           | DELETE |Delete a given topic.|
-| /produceMessage    |  topic, message  | POST   |Create a new message on a given topic.|
+- showTopics
 
+List all topics of message hub as a JSON array
+```
+wsk action invoke --blocking --result messagehub/showTopics
+```
 
-#Trigger on a topic
+- createTopic
+
+Doesn't work at the moment. Have a look at [createTopic.sh](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/scripts/createTopic.sh). This scripts create a topic with curl command.
+```
+wsk action invoke --blocking --result messagehub/createTopic -p topic <topicname>
+
+```
+
+- produceMessage
+
+roduce a message on a topic on message hub.
+```
+wsk action invoke --blocking  messagehub/produceMessage --param topic '<topic>' --param message '<message>' 
+```
+
+##Create trigger with kafkaFeed action
 You can create one trigger for each topic on message hub. When a new message is arriving on the kafka bus, then the feed source sends a POST request to openwhisk and invoke the trigger. The trigger can combined with a rule, so that different actions can performed to build an awesome scenario.
 
 To create a trigger, use following command:
 ```
 wsk trigger create <triggername> -p topic '<topic>' -p polling <milliseconds> --feed messagehub/kafkaFeed
 ```
-- <triggername> is the unique name of a trigger. This value is also used to create the consumer instance for kafka. **IMPORTANT**: This name must unique in the whole message hub instance.
+- <triggername> is the unique name of a trigger. This value is also used to create the consumer instance for kafka.
+
+**IMPORTANT**: This name must unique in the whole message hub instance.
 - <topic> is used for listening on a message hub topic for a trigger
+- <polling> is used to define the interval of polling, default value is 5000
 - messagehub/kafkaFeed create the feed, so that lifecycle events can control the trigger creation/deletion
