@@ -4,74 +4,65 @@
 
 function main(msg) {
 
-    console.log(msg);
+	console.log("PARAMS: ", msg);
 
-    // Need to connect over HTTPS
-    var https = require('https');
+	// Need to connect over HTTPS
+	var https = require('https');
+	var request = require('request');
 
-    // suppress errors from unimplemented certificates
-    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+	// suppress errors from unimplemented certificates
+	process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 
-    var text = "Now is: " + new Date();
+	var text = "Now is: " + new Date();
 
-    // get parameters from packagge binding
-    var restHost = msg.resturl;
-    var restPort = msg.restport;
-    var apiKey = msg.apikey;
-    
-    //get value topic from cli --param
-    var topic = msg.topic;
-    
-    var input = msg.message;
+	// get parameters from packagge binding
+	var restHost = msg.resturl;
+	var restPort = msg.restport;
+	var apiKey = msg.apikey;
 
-    var data = {records: [{value:input}]};
-    
-    // Set our HTTPS request options
-    var options = {
-        host: restHost,
-        port: restPort,
-        path: '/topics/' + topic,
-        method: 'POST',
-        json:data,
-        headers: { 'X-Auth-Token': apiKey,
-            'Content-Type': 'application/json' }
-    };
+	//get value topic from cli --param
+	var topic = msg.topic;
 
-    // Send the HTTPS request and read back the response
-    var req = https.request(options, function(res) {
-        console.log('Sent message and received back status code: ' + res.statusCode);
-        if (res.statusCode == 200){
-            console.log("[MessageHub: ", restHost, " topic: ", topic, "] Producing >>> ", data);
-        }
+	var input = msg.message;
 
-        var responseData = '';
-        res.on('data', function(data) {
-            responseData += data;
-        });
+	var data = {records: [{value:input.toString()}]};
 
-        res.on('end', function () {
-            console.log('Sent message and received back response: ' + responseData);
-        });
-    });
+	// Set our HTTPS request options
+	var options = {
+			uri: 'https://'+restHost+':'+restPort+'/topics/'+topic,
+			//host: restHost,
+			//port: restPort,
+			//path: '/topics/' + topic,
+			method: 'POST',
+			headers: { 'X-Auth-Token': apiKey, 
+				'Content-Type': 'application/vnd.kafka.binary.v1+json' },
+				//body:data
+	};
 
-    // The request body contains the Base64 encoded message text
-    var message = { 'records':
-      [
-            { 'value': msg.message}
-       ]
-    }
-    req.write(JSON.stringify(message));
-    req.end();
+	// Send the HTTPS request and read back the response
+	var req = request(options, function(error, response, body) {
+		
 
-    req.on('error', function(e) {
-        console.log(e);
-    });
-    
-    return {payload: {topic: topic, message: message}};
+		var responseData = '';
+		response.on('data', function(data) {
+			responseData += data;
+			//console.log('Sent message and received back status code: ' + response.statusCode);
+		});
+
+		response.on('end', function () {
+			console.log('Sent message and received back response: ' + responseData);
+		});
+	});
+
+	req.write(JSON.stringify(data));
+	req.end();
+	
+	return whisk.done("Publish message done ");
+
+	
+	req.on('error', function(e) {
+		console.log(e);
+		return whisk.error(e);
+	});
+
 }
-
-/*
-var data = '{ "topic":"farm", "text":"It was the best of times it was the worst of times"}';
-var packet = { payload : data };
-publish(packet);
-*/
