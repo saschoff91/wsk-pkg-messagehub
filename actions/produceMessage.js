@@ -4,7 +4,7 @@
 
 function main(msg) {
 
-	console.log("PARAMS: ", msg);
+	//console.log("PARAMS: ", msg);
 
 	// Need to connect over HTTPS
 	var https = require('https');
@@ -25,8 +25,9 @@ function main(msg) {
 
 	var input = msg.message;
 
-	var data = {records: [{value:input.toString()}]};
-
+	//var data = {records: [{value: JSON.stringify(input)}]};
+	
+	//console.log("DATA::: "+JSON.stringify(data));
 	// Set our HTTPS request options
 	var options = {
 			uri: 'https://'+restHost+':'+restPort+'/topics/'+topic,
@@ -54,15 +55,17 @@ function main(msg) {
 		});
 	});
 
-	req.write(JSON.stringify(data));
+	console.log("Produced message content: "+JSON.stringify(input));
+	
+	req.write(JSON.stringify(input));
 	req.end();
 	
-	return whisk.done("Publish message done ");
+	return whisk.done({result: "Publish message done "});
 
 	
 	req.on('error', function(e) {
 		console.log(e);
-		return whisk.error(e);
+		return whisk.error({error: e});
 	});
 
 }

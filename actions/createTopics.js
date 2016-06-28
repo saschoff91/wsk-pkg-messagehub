@@ -22,21 +22,32 @@ function main(msg) {
 	
 	var uri = 'https://'+restHost+':'+restPort+'/admin/topics';
 
-	request({
+	var req= request({
 		method: 'POST',
 		uri: uri,
 		headers: { 'X-Auth-Token': apiKey, 
-			'Content-Type': 'application/json' },
-		json: data
-	}, function(error, response, body) {
-		if (!error && response.statusCode == 202) {
-			//console.log('Create '+topic+ ' done!');
-			return whisk.done({result: "Creating topic done"});
-		} else {
-			//console.log('Create '+topic+ ' failed!');
-			return whisk.error({error: "Create topic failed"});
+			'Content-Type': 'application/json' }
+	});
+	req.write(JSON.stringify(data));
+	
+	req.on('error', function(e) {
+		console.log(e);
+		return whisk.error(e);
+	});
+	req.on('response', function(response) {
+		console.log('response http code ' , response.statusCode);
+		if (response.statusCode == 202) {
+			return whisk.done({result: "Create Topic "+topic+ " done "});
+		}
+		else {
+			//console.log('response code ' , response.statusCode);
+			return whisk.error("Create Topic "+topic+ " failed ");
 		}
 	});
+	
+	req.end();
+
+
 	
 	return whisk.async();
 

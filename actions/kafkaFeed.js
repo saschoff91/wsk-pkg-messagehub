@@ -3,14 +3,14 @@ var request = require('request');
 
 function main(params) {
 	var serviceEndpoint = 'http://messagehubapplication.mybluemix.net';
-	//var requiredParams = ['apikey', 'topic', 'triggerName'];
-	//var lifecycleEvent = params.lifecycleEvent;
+
 	var triggerAction = params.triggerName.split("/");
+	
 	var whiskKey = whisk.getAuthKey().split(":");
 
 	var lifecycleEvent = params.lifecycleEvent || 'CREATE';
 	if (lifecycleEvent == 'CREATE') {
-		console.log('CREATEING', params.triggerName);
+		console.log('CREATION ', params.triggerName);
 		var body = {
 			"topic": params.topic,
 			"trigger": triggerAction[2],
@@ -20,7 +20,7 @@ function main(params) {
 
 		var options = {
 			method: 'POST',
-			url: serviceEndpoint+'/messagehubtriggers',
+			url: serviceEndpoint+'/messagehubfeeds',
 			json: body,
 			auth: {
 				user: whiskKey[0],
@@ -53,7 +53,7 @@ function main(params) {
 
 		var options = {
 			method: "DELETE",
-			url: serviceEndpoint + "/messagehubtriggers/"+triggerAction[2],
+			url: serviceEndpoint + "/messagehubfeeds/"+triggerAction[2],
 			auth: {
 				user: whiskKey[0],
 				pass: whiskKey[1]
@@ -63,18 +63,19 @@ function main(params) {
 			}
 		};
 
-		request(options, function(error, response, body) {
-			if (response.statusCode == 204) {
-				return whisk.done(JSON.parse(body));
+		var req = request(options, function(error, response, body) {
+			if (response.statusCode == 200) {
+				return whisk.done({"result":"deletion successful"});
 			} else {
 				console.log('http status code:', (response || {}).statusCode);
 				console.log('error:', error);
 				console.log('body:', body);
-				whisk.error({
-					error: error
+				return whisk.error({
+					error: body
 				});
 			}
 		});
+		req.end();
 	}
 
 	return whisk.async();

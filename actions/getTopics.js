@@ -40,6 +40,9 @@ function main(msg) {
 				
 				return whisk.done({topcis: receivedMessages});
 			}
+			else {
+				return whisk.error("Error while getting topic list");
+			}
 		});
 	});
 	req.end();

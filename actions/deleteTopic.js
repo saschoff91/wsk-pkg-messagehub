@@ -1,5 +1,5 @@
 /**
- * Demo whisk action to publish a message to message hub.
+ * Demo whisk action to delete a topic on message hub
  */
 
 function main(msg) {
@@ -11,8 +11,6 @@ function main(msg) {
 	// suppress errors from unimplemented certificates
 	process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 
-	var text = "Now is: " + new Date();
-
 	// get parameters from packagge binding
 	var restHost = msg.resturl;
 	var restPort = msg.restport;
@@ -23,20 +21,30 @@ function main(msg) {
 	
 	var uri = 'https://'+restHost+':'+restPort+'/admin/topics/'+topic;
 
-	request({
+	var req = request({
 		method: 'DELETE',
 		uri: uri,
 		headers: { 'X-Auth-Token': apiKey, 
-			'Content-Type': 'application/json' },
-	}, function(error, response, body) {
-		if (!error && response.statusCode == 202) {
-			//console.log('Create '+topic+ ' done!');
-			whisk.done({result: "Deleting done"});
-		} else {
-			//console.log('Create '+topic+ ' failed!');
-			whisk.error({error: "Error while deleting"});
+			'Content-Type': 'application/json' }
+	});
+	
+	req.on('error', function(e) {
+		console.log(e);
+		whisk.error(e);
+	});
+	
+	req.on('response', function(response) {
+		console.log('response http code ' , response.statusCode);
+		if (response.statusCode == 202) {
+			return whisk.done({result: "Delete Topic "+topic+ " done "});
+		}
+		else {
+			//console.log('response code ' , response.statusCode);
+			return whisk.error("Delete Topic "+topic+ " failed ");
 		}
 	});
+	
+	req.end();
 	
 	return whisk.async();
 }
