@@ -24,48 +24,70 @@ function main(msg) {
 	var topic = msg.topic;
 
 	var input = msg.message;
+	console.log("Produced message content: "+input);
 
-	//var data = {records: [{value: JSON.stringify(input)}]};
+	console.log("Produced message content: "+input+" and sensorID" +input.sensorId);
+
+	/*
+	if (input.sensorId) {
+		//if report is from sensor
+		var data = {records: [{ key : null , value: "{"+input.sensorId +" / " +   input.location +" / "+ input.sensortype +" / "+ input.value + "/ " }]};
+	} else {
+		if (input.title) {
+			// if report is from human
+			var data = {records: [ {key: null, value: "{"+ input.title+" / " + input.description +" / " + input.location +" / " + input.attachment +" / " + input.author+"/ " } ]};
+		} else {
+			whisk.error({error: 'Unkown report input!'});
+		}
+	}*/
 	
-	//console.log("DATA::: "+JSON.stringify(data));
+	var data = {records: [ { key: null, value: "{"+ input +"// }"}]};
+
 	// Set our HTTPS request options
 	var options = {
 			uri: 'https://'+restHost+':'+restPort+'/topics/'+topic,
-			//host: restHost,
-			//port: restPort,
-			//path: '/topics/' + topic,
+
 			method: 'POST',
 			headers: { 'X-Auth-Token': apiKey, 
-				'Content-Type': 'application/vnd.kafka.binary.v1+json' },
-				//body:data
+				//'Content-Type': 'application/vnd.kafka.binary.v1+json' ,
+				//'Content-Length': data.length,
+				//'Accept': 'application/vnd.kafka.v1+json'
+			},
+			json: data
 	};
+	/*var req = request(options);
 
-	// Send the HTTPS request and read back the response
-	var req = request(options, function(error, response, body) {
-		
+	req.write(JSON.stringify(data));
 
-		var responseData = '';
-		response.on('data', function(data) {
-			responseData += data;
-			//console.log('Sent message and received back status code: ' + response.statusCode);
-		});
-
-		response.on('end', function () {
-			console.log('Sent message and received back response: ' + responseData);
-		});
-	});
-
-	console.log("Produced message content: "+JSON.stringify(input));
-	
-	req.write(JSON.stringify(input));
-	req.end();
-	
-	return whisk.done({result: "Publish message done "});
-
-	
-	req.on('error', function(e) {
+	/*var responseData = '';
+	req.on('data', function(data) {
+		responseData += data;
+		console.log('Sent message and received back status code: '+ responseData);
+	});*/
+	/*req.on('error', function(e) {
 		console.log(e);
 		return whisk.error({error: e});
 	});
+
+	req.on('response', function(response) {
+		console.log('Received response http code: ' + response.statusCode);
+		console.log('Received response message: ' + response.statusMessage);
+		return whisk.done({result: "Publish message done "});
+
+	});
+
+	req.end();
+	 */
+
+	request(options, function(error, response, body) {
+		if (!error && response.statusCode == 200) {
+			console.log('Produce message successful ',response);
+			return whisk.done({result: "Produce Message on Messagehub successful"});
+		} else {
+			console.log('Error while produce message ', response.body);
+			return whisk.error({error:"Failed to produce Message on Messagehub "});
+		}
+	});
+	return whisk.async();
 
 }
