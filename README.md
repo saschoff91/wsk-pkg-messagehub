@@ -1,6 +1,8 @@
 # wsk-pkg-messageHub service package
 This package include the openwhisk-enablement for message hub instance on [IBM Bluemix](http://www.ibm.com/cloud-computing/bluemix/). The whole communication is based on the [Kafka REST API](http://docs.confluent.io/2.0.0/kafka-rest/docs/index.html).  
 
+![MessageHub overview](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/messagehub%20overview.jpg "MessageHub Package Workflow")
+
 # Prepare environment
 First create a message hub instance in Bluemix and bind it to you node application. 
 Then edit following line of [app.js](https://github.ibm.com/saschoff/wsk-pkg-messageHub/blob/master/app.js) and fill in your message hub instance name:
