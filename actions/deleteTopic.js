@@ -1,50 +1,90 @@
-/**
- * Demo whisk action to delete a topic on message hub
+/*
+ * Copyright 2015-2016 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-function main(msg) {
+var request = require('request');
 
-	console.log("PARAMS: ", msg);
+/**
+ * Openwhisk action to cerate a topic in bluemix message hub
+ * @param      {string}  restUrl                    (required)  MessageHub url instance
+ * @param      {string}  restPort                   (required)  MessageHub port, default 443
+ * @param      {string}  apikey                     (required)  MessageHub Api key
+ * @param      {string}  topic                      (required)  MessageHub topic for creation
+ * @return     {Object}                                         Done with the result of invocation
+ **/
 
-	var request = require('request');
+function main(params) {
+	var requiredParams = ["restUrl", "restPort", 'apikey', 'topic'];
 
-	// suppress errors from unimplemented certificates
-	process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+	checkParameters(params, requiredParams, function(missingParams) {
+		if (missingParams != "") {
+			console.error("Missing required parameters: " + missingParams);
+			return whisk.error("Missing required parameters: " + missingParams);
+		} else {
 
-	// get parameters from packagge binding
-	var restHost = msg.resturl;
-	var restPort = msg.restport;
-	var apiKey = msg.apikey;
+			var url = 'https://'+params.restUrl+':'+params.restPort+'/admin/topics/'+params.topic;
 
-	//get value topic from cli --param
-	var topic = msg.topic;
-	
-	var uri = 'https://'+restHost+':'+restPort+'/admin/topics/'+topic;
+			var options = {
+					method: 'DELETE',
+					url: url,
+					headers: {
+						'X-Auth-Token': params.apikey,
+						'Content-Type': 'application/json'
+					}
+			};
 
-	var req = request({
-		method: 'DELETE',
-		uri: uri,
-		headers: { 'X-Auth-Token': apiKey, 
-			'Content-Type': 'application/json' }
-	});
-	
-	req.on('error', function(e) {
-		console.log(e);
-		whisk.error(e);
-	});
-	
-	req.on('response', function(response) {
-		console.log('response http code ' , response.statusCode);
-		if (response.statusCode == 202) {
-			return whisk.done({result: "Delete Topic "+topic+ " done "});
+			request(options, function(err, res, body) {
+				if (!err && res.statusCode === 202) {
+					return whisk.done({result: "topic deleted successfully "});
+
+				} else {
+					return whisk.error({
+						statusCode: (res || {}).statusCode,
+						error: err,
+						body: body
+					});
+				}
+			});
+
+
+
 		}
-		else {
-			//console.log('response code ' , response.statusCode);
-			return whisk.error("Delete Topic "+topic+ " failed ");
-		}
 	});
-	
-	req.end();
 	
 	return whisk.async();
+}
+
+/**
+ *  A function that check whether the parameters passed are required or not
+ *
+ * @param      {object}    params    An object contains the parameter required
+ *                                   in order to check it and generate a string
+ *                                   that contains a list of missing parameters
+ * @param      {Function}  callback  the callback function has the generated
+ *                                   array or an empty one if the params is
+ *                                   empty or nothing is missing
+ */
+function checkParameters(params, requiredParams, callback) {
+	console.log("Checking Existence of Required Parameters");
+	var missingParams = [];
+	for (var i = requiredParams.length - 1; i >= 0; i--) {
+		console.log(requiredParams[i]);
+		if (!params.hasOwnProperty(requiredParams[i])) {
+			missingParams.push(requiredParams[i]);
+		}
+		if (i == 0)
+			return callback(missingParams);
+	}
 }
