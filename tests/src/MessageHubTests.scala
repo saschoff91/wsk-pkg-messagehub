@@ -45,7 +45,7 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
     val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, "apikey" -> apikey.toJson);
 
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
-      _.fields("response").toString should include(s"""""markedForDeletion""""")
+      _.fields("response").toString should include(s"""markedForDeletion":")
     }
   }
 
