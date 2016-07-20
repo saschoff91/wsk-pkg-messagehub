@@ -21,13 +21,13 @@ var request = require('request');
  * @param      {string}  triggerName      (Provided by the system)       Trigger full name i.e. /namespace/triggerName/
  * @param      {string}  apikey           (Provided by the system)       API Key of instance
  * @param      {string}  topic            (required)                     Authentication token of IoT RTI instance
+ * @param      {string}  serviceEndpoint  (required)                     Trigger provider app url
  * @param      {string}  polling          (optional)                     Message Schema name
- * @param      {string}  endpoint         (optional)                     Trigger provider app url
- * @return     {Object}                                                Done with the result of invocation
+ * @return     {Object}                                                  Done with the result of invocation
  **/
 
 function main(params) {
-	var serviceEndpoint = params.endpoint || 'http://messagehubapplication.mybluemix.net';
+	var serviceEndpoint = params.serviceEndpoint;
 
 	var triggerName = params.triggerName.split("/");
 
@@ -35,14 +35,14 @@ function main(params) {
 
 	var lifecycleEvent = params.lifecycleEvent || 'CREATE';
 	if (lifecycleEvent == 'CREATE') {
-		var requiredParams = ["triggerName", "topic" ];
+		var requiredParams = ["triggerName", "topic", "serviceEndpoint"];
 
 		checkParameters(params, requiredParams, function(missingParams) {
 			if (missingParams != "") {
 				console.error("Missing required parameters: " + missingParams);
 				return whisk.error("Missing required parameters: " + missingParams);
 			} else {
-				handleTriggerCreation(triggerName, apikey, serviceEndpoint, params.topic, params.polling);
+				handleTriggerCreation(triggerName, apikey, serviceEndpoint);
 			}
 		});
 
@@ -55,7 +55,7 @@ function main(params) {
 			error: "PAUSE lifecycleEvent not implemented"
 		});
 	} else { //lifecycleEvent == 'DELETE'
-		var requiredParams = ["triggerName"];
+		var requiredParams = ["triggerName", "topic", "serviceEndpoint"];
 		checkParameters(params, requiredParams, function(missingParams) {
 			if (missingParams != "") {
 				console.error("Missing required parameters: " + missingParams);
@@ -73,13 +73,13 @@ function main(params) {
 /**
  *  A function that handle the trigger creation and perform request to trigger provider app
  */
-function handleTriggerCreation(triggerName, apikey, serviceEndpoint, topic, polling ) {
+function handleTriggerCreation(triggerName, apikey, serviceEndpoint ) {
 	var body = {
 			"namespace": triggerName[1],
 			"trigger": triggerName[2],
-			"apikey": apikey,
-			"topic": topic,
-			"pollingInterval": polling,
+			"apikey": params.apikey,
+			"topic": params.topic,
+			"pollingInterval": params.polling,
 
 	};
 
