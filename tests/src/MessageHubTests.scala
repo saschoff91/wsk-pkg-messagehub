@@ -31,7 +31,7 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
   implicit val wskprops = WskProps()
   val wsk = new Wsk()
 
-  val credentials = TestUtils.getVCAPcredentials("messagehub")
+  val credentials = TestUtils.getVCAPcredentials("messagehub");
   val restUrl = credentials.get("restUrl");
   val restPort = credentials.get("restPort");
   val apikey = credentials.get("apikey");
@@ -45,14 +45,16 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
     val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, "apikey" -> apikey.toJson);
 
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
-      _.fields("response").toString should include(s"""""markedForDeletion": false"""")
+      _.fields("response").toString should include(s"""""markedForDeletion""""")
     }
   }
 
   "create topic action" should "return, create successfull" in {
     val actionName = "/whisk.system/messagehub/createTopic"
-    val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, "apikey" -> apikey.toJson, "topic" -> "testTopic".toJson );
-
+    val params = HashMap("restUrl" -> restUrl.toJson, 
+                         "restPort" -> restPort.toJson, 
+                         "apikey" -> apikey.toJson, 
+                         "topic" -> "testTopic".toJson );
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
       _.fields("response").toString should include(s"""""topic created successfully"""")
     }
@@ -60,8 +62,11 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
 
     "publish message action" should "return, publish successfull" in {
     val actionName = "/whisk.system/messagehub/publish"
-    val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, "apikey" -> apikey.toJson, "topic" -> "testTopic".toJson, "message" -> "test message input".toJson );
-
+    val params = HashMap("restUrl" -> restUrl.toJson, 
+                         "restPort" -> restPort.toJson, 
+                         "apikey" -> apikey.toJson, 
+                         "topic" -> "testTopic".toJson, 
+                         "message" -> "test message input".toJson );
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
       _.fields("response").toString should include(s"""""offsets"""")
     }
@@ -69,8 +74,10 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
 
       "delete topic action" should "return, deletion successfull" in {
     val actionName = "/whisk.system/messagehub/deleteTopic"
-    val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, "apikey" -> apikey.toJson, "topic" -> "testTopic".toJson);
-
+    val params = HashMap("restUrl" -> restUrl.toJson, 
+                         "restPort" -> restPort.toJson, 
+                         "apikey" -> apikey.toJson, 
+                         "topic" -> "testTopic".toJson );
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
       _.fields("response").toString should include(s"""""topic deleted successfully"""")
     }
