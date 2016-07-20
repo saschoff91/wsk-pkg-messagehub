@@ -27,7 +27,7 @@ import org.scalatest.FlatSpecLike
 
 @RunWith(classOf[JUnitRunner])
 
-class TemplateTests extends TestHelpers with WskTestHelpers with Matchers {
+class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
 
   implicit val wskprops = WskProps()
   val wsk = new Wsk()
