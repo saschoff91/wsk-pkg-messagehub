@@ -14,66 +14,56 @@
  * limitations under the License.
  */
 
-var https = require('https');
+var request = require('request');
 
 /**
- * Openwhisk action to get all topics from bluemix message hub instance
+ * Openwhisk action to cerate a topic in bluemix message hub
  * @param      {string}  restUrl                    (required)  MessageHub url instance
  * @param      {string}  restPort                   (required)  MessageHub port, default 443
  * @param      {string}  apikey                     (required)  MessageHub Api key
+ * @param      {string}  topic                      (required)  MessageHub topic for creation
  * @return     {Object}                                         Done with the result of invocation
  **/
 
 function main(params) {
-	var requiredParams = ["restUrl", "restPort", 'apikey'];
+	var requiredParams = ["restUrl", "restPort", 'apikey', 'topic'];
 
 	checkParameters(params, requiredParams, function(missingParams) {
 		if (missingParams != "") {
 			console.error("Missing required parameters: " + missingParams);
 			return whisk.error("Missing required parameters: " + missingParams);
 		} else {
+			var body = {name: params.topic};
+
+			var url = 'https://'+params.restUrl+':'+params.restPort+'/admin/topics';
+
 			var options = {
-					host: params.restUrl,
-					port: params.restPort,
-					path: '/admin/topics',
-					method: 'GET',
-					headers: { 'X-Auth-Token': params.apikey,
-						'Content-Type': 'application/json' }
+					method: 'POST',
+					url: url,
+					body: JSON.stringify(body),
+					headers: {
+						'X-Auth-Token': params.apikey,
+						'Content-Type': 'application/json'
+					}
 			};
 
-			var req = https.request(options, function(res) {
-				console.log('Sent request for topics and received back status code: ' + res.statusCode);
-				var responseData = '';
+			request(options, function(err, res, body) {
+				if (!err && res.statusCode === 202) {
+					return whisk.done({result: "topic created successfully "});
 
-				res.on('data', function(data) {
-					responseData += data;
-				});
-
-				res.on('end', function () {
-					if (res.statusCode == 200) {
-						console.log('response data is ' , responseData);
-
-						var receivedMessages = JSON.parse(responseData);
-
-						return whisk.done({topcis: receivedMessages});
-					}
-					else {
-						return whisk.error("Error while getting topic list");
-					}
-				});
+				} else {
+					return whisk.error({
+						statusCode: (res || {}).statusCode,
+						error: err,
+						body: body
+					});
+				}
 			});
-			req.end();
-
-			req.on('error', function(e) {
-				console.log(e);
-				whisk.error(e);
-			});
-
 		}
-
 	});
 
 	return whisk.async();
+
 }
 
 /**
