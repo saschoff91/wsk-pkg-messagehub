@@ -24,7 +24,9 @@ cd $ROOTDIR
 
 cd $ROOTDIR/ansible
 
+$ANSIBLE_CMD wipe.yml
 $ANSIBLE_CMD openwhisk.yml
+$ANSIBLE_CMD postdeploy.yml
 
 cd $ROOTDIR
 
@@ -46,3 +48,4 @@ source $ROOTDIR/../install.sh $EDGE_HOST $AUTH_KEY $WSK_CLI
 X="./gradlew :tests:test "
 for f in $(ls $ROOTDIR/../tests/src | sed -e 's/\..*$//'); do X="$X --tests \"packages.$f\""; done
 eval $X
+

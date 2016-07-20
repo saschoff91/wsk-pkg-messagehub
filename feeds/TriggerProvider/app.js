@@ -1,15 +1,23 @@
-var express = require('express');
+/*
+ * Copyright 2015-2016 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 var app = express();
-
-//var http = require('http');
-
 var bodyParser = require('body-parser');
-
 var request = require('request');
-
 var logger = require('./Logger');
-
-//var io = require('socket.io')(http);
 
 //retry routine while deleting kafka customer
 var retry = require('retry');
@@ -19,19 +27,34 @@ var operation = retry.operation({
 	maxTimeout: 3 * 1000  // the maximum number of milliseconds between two retries
 });
 
+var storeOperation = retry.operation({
+	retries: 5,
+	factor: 3,
+	minTimeout: 1 * 1000,
+	maxTimeout: 60 * 1000
+});
 
 var cfenv = require('cfenv');
 var appEnv = cfenv.getAppEnv();
-var messageHub = appEnv.getServiceCreds('Message Hub-db');
 
 /*
  * Get message hub credentials
  */
+/*****MESSAGEHUB******/
+var messageHub = appEnv.getServiceCreds('Message Hub-db');
 var messagehubApiKey = messageHub.api_key;
-
 var messagehubRestUrl =messageHub.kafka_rest_url;
+/*****MESSAGEHUB******/
 
-var routerHost = process.env.ROUTER_HOST || 'openwhisk.ng.bluemix.net';
+/*****CLOUDANT******/
+var cloudant = appEnv.getServiceCreds('cloudant-for-openwhisk');
+var cloudantUsername = cloudant.username;
+var cloudantPassword = cloudant.password;
+var cloudantDatabase = 'messagehub_triggers';
+var nano = require('nano')(cloudant.url);
+nano.db.create(cloudantDatabase);
+var db = nano.db.use(cloudantDatabase);
+/*****CLOUDANT******/
 
 //Allow invoking servers with self-signed certificates.
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -83,91 +106,184 @@ app.post('/messagehubfeeds',isAuthenticated, function(req, res) {
 		return sendError(method, 400, "Missing parameters: required namespace", res);
 	}
 
-	addFeed(args.trigger, args.topic, args.namespace, args.pollingInterval, function(response){
-		if (response.statusCode == 409) {
-			return sendError(method, 409, 'Error code 40902 – Consumer instance with the specified name already exists.', res);
+	handleTriggerCreation(args, function(response){
+		if (response == "stored") {
+			sendResponse(method, 200, "Trigger and feed '"+args.trigger+"' created", res);
 		} else {
-			if (response.statusCode == 422) {
-				return sendError(method, 422, 'Error code 42204 – Invalid consumer configuration. One of the settings specified in the request contained an invalid value.', res);
+			if (response == "failToStoreRollbackSuccess") {
+				return sendError(method, 500, "Fail to store trigger in cloudant. Roĺlback successful!", res);
 			} else {
-				return sendResponse(method, 200, "Trigger and feed '"+args.trigger+"' created", res);
+				if (response == "failToStoreRollbackFailed") {
+					return sendError(method, 500, "Fail to store trigger in cloudant. Roĺlback failed too!", res);
+				} else {
+					return sendError(method, 500, "Fail to create consumer in message hub", res);
+				}
 			}
 		}
-
 	});	
 });
 
-/*
- * Associated function to POST/messagehubfeeds/:id
- * Send POST request to message hub instance, to create a consumer (trigger)
- * Call method startPolling
- */
-function addFeed(id, topic, namespace, pollingInterval, _callback) {
+function handleTriggerCreation(args, _callback) {
 	var method = 'FUNCTION: addFeed';
+	var trigger = args.trigger;
+	var topic = args.topic;
+	var namespace = args.namespace;
+	var pollingInterval = args.pollingInterval;
+	var apikey = args.apikey;
 
 	if (!pollingInterval) {
 		pollingInterval = 5000; //default: 5s, if not specified
 	}
 
+	createConsumer(trigger, function(response) {
+		if (response.statusCode == 200) {	
+			//logger.info("OK", method, 'New Feed ', trigger,' created !');	
+			storeTrigger(args, function(stored) {
+				if (stored == "stored") {
+					feeds[trigger] = {topic:topic, namespace:namespace, pollingInterval:pollingInterval, apikey:apikey, polling:false};	
+					startPolling(trigger, topic, pollingInterval);
+					_callback('stored');
+				} else {
+					deleteRoutine(trigger, function(err,result) {
+						if (err) {
+							console.log('Deleting trigger and feed ', trigger, ' failed ');
+							_callback('failToStoreRollbackSuccess');
+						} else {
+							console.log( 'Deleting trigger and feed ', trigger, ' done ');
+							_callback('failToStoreRollbackFailed');
+						}
+					});
+				}
+			});
+		} else {
+			_callback('failToCreateConsumer');
+		}
+	});
+}
+
+function createConsumer(trigger, _callback) {
 	var headers = {
-			'Content-Type': 'application/vnd.kafka.v1+json', //works
-			//'Content-Type': 'application/vnd.kafka+json',
+			'Content-Type': 'application/vnd.kafka.v1+json',
 			'X-Auth-Token': messagehubApiKey
 	};
-
-
-	var data = {'name':id, 'format': 'binary', 'auto.offset.reset': 'largest', 'auto.commit.enable':'true'}; //binary consumer
-	//var data = {'name':id, 'format': 'json', 'auto.offset.reset': 'largest', 'auto.commit.enable':'true'}; //avro consumer
-	
+	var data = {'name':trigger, 'format': 'binary', 'auto.offset.reset': 'largest', 'auto.commit.enable':'true'}; //binary consumer
 	var options = {
-			url: messagehubRestUrl+'/consumers/'+id,
+			url: messagehubRestUrl+'/consumers/'+trigger,
 			method: 'POST',
 			headers: headers
 	};
-
 	var req = request(options);
-
 	req.on('response', function(response) {
-		if (response.statusCode == 200) {	
-			logger.info("OK", method, 'New Feed ', id,' created on Topic "',topic , '" !');	
-			feeds[id] = {topic:topic, namespace:namespace, pollingInterval:pollingInterval, polling:false};
-			startPolling(id, topic, pollingInterval);
-		}
-		else {
-			deleteTriggerFeed(id, namespace);
-		}
 		_callback(response);
 	});
-
 	req.write(JSON.stringify(data));
+	req.end();
+}
+
+function deleteRoutine(input, callback) {
+	operation.attempt(function(currentAttempt) {
+
+		deleteConsumer(input, function(err, result) {
+
+			console.log('Current attempt: ' + currentAttempt);
+
+			if (operation.retry(err)) {  // retry if needed
+				return;
+			}
+
+			callback(err ? operation.mainError() : null, result);
+		});
+	});
+}
+/*
+ * Send DELETE request to message hub to delete consumer (trigger)
+ */
+function deleteConsumer(trigger,_callback) {
+	var headers = {
+			'Content-Type': 'application/vnd.kafka.v1+json',
+			'X-Auth-Token': messagehubApiKey 
+	};
+	var options = {
+			url: messagehubRestUrl+'/consumers/'+trigger+'/instances/'+trigger,
+			method: 'DELETE',
+			headers: headers
+	};
+	var req = request(options);
+
+	req.on('response', function(resp) {
+		if (resp.statusCode == 204)  {
+			console.log( 'Feed deleted ', trigger);
+			//delete feeds[trigger];
+			_callback(null, 'ok');
+		} else {
+			console.log('Error code 40910 - Another request is in progress for consumer "'+trigger+'". Request may be retried when response is received for the previous request.')
+			_callback(new Error());
+		}
+	});
 
 	req.end();
 }
 
-function deleteTriggerFeed(triggerName, namespace) {
-	var method = 'FUNCTION: deleteTrigger';
-	logger.info(triggerName, method, 'Cannot create trigger, cause of error in creation of feed');
-	var apiKey = "52a41dd3-ecc0-4eb2-af96-46af7083fa1c:eqd3fBvDmFpUZbU5WmuKoKucMAFEpMEkV21byvRYH7GIcCoAS45AJGMu2XLB5mUF";
-	//var form = {payload:message};
-	var auth = apiKey.split(':');
-	var uri = ' https://openwhisk.ng.bluemix.net/api/v1/namespaces/'+namespace+'/triggers/'+triggerName;
 
-	request({
-		method: 'DELETE',
-		uri: uri,
-		auth: {
-			user: auth[0],
-			pass: auth[1]
-		},
-		//json: form
-	}, function(error, response, body) {
-		if (!error && response.statusCode == 200) {
-			logger.info(triggerName, method, 'done delete whisk trigger, STATUS', response ? response.statusCode : response);
-			delete feeds[triggerName];
+function storeTrigger(newTrigger, _callback) {
+	storeOperation.attempt((currentAttempt) => {
+		db.insert(newTrigger, newTrigger.trigger, (err) => {
+			if (operation.retry(err)) {
+				console.log(err);
+				console.log("trigger can not be inserted into DB, currentAttempt: ", currentAttempt, "out of :");
+				return;
+			}
+			console.log("inserted successfully");
+			_callback("stored");
+		});
+	});
+}
+
+function deleteTrigger(trigger, _callback) {
+	db.get(trigger, (err, body) => {
+		if (!err) {
+			db.destroy(body._id, body._rev, (err) => {
+				if (err) {
+					console.error(err);
+					_callback(false);
+				}
+			});
 		} else {
-			logger.error(triggerName, method, 'Error delete whisk trigger: ', response ? response.statusCode : response, error, body);
+			console.error(method, 'there was an error while deleting', trigger, 'from database');
+			_callback(false);
 		}
 	});
+	_callback(true);
+}
+
+function handleTriggerDeletion(trigger, _callback) {
+	var method = 'deleteTrigger';
+	if (feeds[trigger]) {
+		console.log(feeds[trigger]);
+
+		stopPolling(trigger);
+
+		deleteRoutine(trigger, function(err,result) {
+			if (err) {
+				console.log('Deleting consumer from messagehub failed ');
+				_callback(false);
+			} else {
+				console.log( 'Deleting consumer from messagehub done ');
+				deleteTrigger(trigger, function(result) {
+					if (result) {
+						delete feeds[trigger];
+						_callback(true);
+					} else {
+						console.log( 'Deleting trigger from db failed ');
+						_callback(false);
+					}
+				});
+			}
+		});
+	} else {
+		console.log('trigger', trigger, 'could not be found');
+		_callback(false);
+	}
 }
 
 /*
@@ -234,8 +350,8 @@ function poll(id, topic, _callback){
 	var headers = {
 			'X-Auth-Token': messagehubApiKey,
 			'Accept': 'application/vnd.kafka.binary.v1+json' //binary consumer
-			//'Accept':'application/vnd.kafka.avro.v1+json'	//avro consumer
-			//'Accept': 'application/vnd.kafka.json.v1+json'
+				//'Accept':'application/vnd.kafka.avro.v1+json'	//avro consumer
+				//'Accept': 'application/vnd.kafka.json.v1+json'
 	};
 	var options = {
 			url: messagehubRestUrl+'/consumers/'+id+'/instances/'+id+'/topics/'+topic,
@@ -290,71 +406,18 @@ app.delete('/messagehubfeeds/:id', isAuthenticated,function(req,res) {
 	var id = req.params.id;
 	id = id.replace(/:/g, "/");
 
-	if (feeds[id]) {
-
-		if (feeds[id].polling == true) {
-			stopPolling(id);
-		}
-
-		deleteRoutine(id, function(err,result) {
-			if (err) {
-				logger.info(id, method, 'Deleting trigger and feed ', id, ' failed ');
-				return sendError(method, 404, 'Feed "'+id+'" deletion failed.',res);
-			} else {
-				logger.info(id, method, 'Deleting trigger and feed ', id, ' done ');
-				return sendResponse(method, 200, 'Feed "'+id+'" deleted correctly.',res);
-			}
-		});
-	} else {
-		return sendError(method, 404, "Error code 40403 – Consumer instance not found", res);
-	}
+	handleTriggerDeletion(id, function(deleted) {
+		if (deleted)
+			res.status(200).json({
+				ok: 'trigger ' + id + ' successfully deleted'
+			});
+		else
+			res.status(404).json({
+				error: 'trigger ' + id + ' not found'
+			});
+	});
 });
 
-function deleteRoutine(input, callback) {
-	operation.attempt(function(currentAttempt) {
-
-		deleteFeed(input, function(err, result) {
-
-			console.log('Current attempt: ' + currentAttempt);
-
-			if (operation.retry(err)) {  // retry if needed
-				return;
-			}
-
-			callback(err ? operation.mainError() : null, result);
-		});
-	});
-}
-
-/*
- * Send DELETE request to message hub to delete consumer (trigger)
- */
-function deleteFeed(id,_callback) {
-
-	var method = "FUNCTION: deleteFeed";
-	var headers = {
-			'X-Auth-Token': messagehubApiKey 
-	};
-	var options = {
-			url: messagehubRestUrl+'/consumers/'+id+'/instances/'+id,
-			method: 'DELETE',
-			headers: headers
-	};
-	var req = request(options);
-
-	req.on('response', function(resp) {
-		if (resp.statusCode == 204)  {
-			logger.info("No Content: "+resp.statusCode, method, 'Feed deleted ', id);
-			delete feeds[id];
-			_callback(null, 'ok');
-		} else {
-			logger.info("Conflict: "+resp.statusCode ,method, 'Error code 40910 - Another request is in progress for consumer "'+id+'". Request may be retried when response is received for the previous request.')
-			_callback(new Error());
-		}
-	});
-
-	req.end();
-}
 
 
 /**
@@ -392,25 +455,6 @@ function invokeWhiskAction(id, message) {
 			logger.error(id, method, 'Error fire trigger:', response ? response.statusCode : response, error, body);
 		}
 	});
-
-	/*
-	var req= request(options);
-
-	req.on('response', function(response) {
-		if (response.statusCode == 200) {
-			logger.info(tid, method, 'trigger fired successful ', id);
-			logger.info(tid, method, 'done http request, body', response.body);
-		}
-		else {
-			logger.info(tid, method, 'done http request, STATUS', response ? response.statusCode : response);
-			logger.info(tid, method, 'error while fire trigger', response.body);
-		}
-	});
-
-	req.write(JSON.stringify(form));
-
-	req.end();
-	 */
 }
 
 function isAuthenticated(req, res, next) {
@@ -450,6 +494,7 @@ function sendResponse(method, statusCode, message, res) {
 		response: message
 	});
 }
+
 
 //------------------------------- MESSAGE HUB POLLING SERVER
 app.listen(appEnv.port, '0.0.0.0', function() {

@@ -1,72 +1,194 @@
-# wsk-pkg-messageHub service package
-This package include the openwhisk-enablement for message hub instance on [IBM Bluemix](http://www.ibm.com/cloud-computing/bluemix/). The whole communication is based on the [Kafka REST API](http://docs.confluent.io/2.0.0/kafka-rest/docs/index.html).  
+Openwhisk Message Hub Package
+============================
+[![Build Status](https://travis-ci.org/saschoff91/wsk-pkg-messagehub.svg?branch=master)](https://travis-ci.org/saschoff91/wsk-pkg-messagehub)
 
-# Prepare environment
-First create a message hub instance in Bluemix and bind it to you node application. 
-Then edit following line of [app.js](https://github.ibm.com/saschoff/wsk-pkg-messageHub/blob/master/app.js) and fill in your message hub instance name:
+This repository includes actions and feeds for [IBM Bluemix](http://www.ibm.com/cloud-computing/bluemix/) service Message Hub. 
+The whole communication is based on the [Kafka REST API](http://docs.confluent.io/2.0.0/kafka-rest/docs/index.html).
+
+![MessageHub overview](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/messagehub%20overview.jpg "MessageHub Package Workflow")
+
+## Getting Started:
+Before using this package, following preparations must be done:
+  1. Create a Message Hub instance in Bluemix.
+  2. Create a node application, which acts as a trigger provider.
+  3. Create a cloudant instance, which stores the trigger.
+  4. Bind the message hub and cloudant instance to node application, via application dashboard.
+  5. Modify /feeds/TriggerProvider/app.js file and fill in your message hub instance name
+
 ``` javascript
 var messageHub = appEnv.getServiceCreds('Message Hub-instance');
+...
+var cloudant = appEnv.getServiceCreds('Cloudant-instance');
 ``` 
-
-To deploy [app.js](https://github.ibm.com/saschoff/wsk-pkg-messageHub/blob/master/app.js) perform
+  5. Deploy the created node application with file from /feeds/TriggerProvider/ with 
 ``` 
-cf push
+/<PATH_TO_NODE_FILES>$ cf push
 ```
-in the folder, who contains [manifest.yml](https://github.ibm.com/saschoff/wsk-pkg-messageHub/blob/master/manifest.yml) and [package.json](https://github.ibm.com/saschoff/wsk-pkg-messageHub/blob/master/package.json). 
+  ***Note:*** If you cloned this repository and deploy the application with /feeds/TriggerProvider/, change the application name in manifest.yml before. 
 
-**IMPORTANT**: Change the name of you application in manifest.yml before deploying.
+| Entity | Type | Parameters | Description |
+| --- | --- | --- | --- |
+| `/whisk.system/messagehub` | package | restUrl, restPort, apikey | Message Hub Package |
+| `/whisk.system/messagehub/getTopics` | action | see action [details](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/actions/getTopics.js) | return all topics |
+| `/whisk.system/messagehub/createTopic` | action | see action [details](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/actions/createTopic.js) | create a new topic |
+| `/whisk.system/messagehub/deleteTopic` | action | see action [details](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/actions/deleteTopic.js) | delete a topic  |
+| `/whisk.system/messagehub/publish` | action | see action [details](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/actions/publish.js) | create new binary message for a topic |
+| `/whisk.system/messagehub/kafkaFeed` | action | see action [details](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/feeds/kafkaFeed.js) | handle trigger lifecycle |
 
-# Invoke Actions
-When this package is correctly created, you have to create a binding for all required parameters.
 
-```
-wsk package update messagehub -p resturl '<messageHubRestURL>' -p restport '443' -p apikey '<apikey>' 
-```
-To check, if you bind parameters correctly, perfom:
-```
-wsk package get messagehub parameters
-```
+## Actions:
+The parameters for the package /whisk.system/messagehub, like restUrl, restPort and apikey, are required for all following actions and feeds. So they are not listed seperatly. Parameters for each action are listed in the source code of each action file.
 
-Following whisk actions are available in *messagehub* packages:
-
-- showTopics
-
-List all topics of message hub as a JSON array
-```
-wsk action invoke --blocking --result messagehub/showTopics
+To bind all required parameters to the package perform following command.
+```bash
+wsk package update messagehub -p restUrl '<messageHubRestURL>' -p restPort '<port>' -p apikey '<apikey>' 
 ```
 
-- createTopic
+#### Get Topics
+`/whisk.system/iot/getTopics` returns all created on a Message Hub instance
 
-Doesn't work at the moment. Have a look at [createTopic.sh](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/scripts/createTopic.sh). This scripts create a topic with curl command.
-```
-wsk action invoke --blocking --result messagehub/createTopic -p topic <topicname>
-
-```
-
-- produceMessage
-
-roduce a message on a topic on message hub.
-```
-wsk action invoke --blocking  messagehub/produceMessage --param topic '<topic>' --param message '<message>' 
+To use this action, you need to pass the required parameters (refer to the table above)
+```bash
+wsk action invoke /whisk.system/messagehub/getTopics
 ```
 
-# Create trigger
-You can create one trigger for each topic on message hub. When a new message is arriving on the kafka bus, then the feed source sends a POST request to openwhisk and invoke the trigger. The trigger can combined with a rule, so that different actions can performed to build an awesome scenario.
+Example of success response:
+```javascript
+{
+  "result": {
+    "topcis": [
+      {
+        "markedForDeletion": false,
+        "name": "AAAA",
+        "partitions": 1,
+        "retentionMs": "86400000"
+      },
+      {
+        "markedForDeletion": false,
+        "name": "BBBB",
+        "partitions": 1,
+        "retentionMs": "86400000"
+      }
+    ]
+  },
+  "status": "success",
+  "success": true
+}
+```
 
-To create a trigger, use following command:
+#### Create Topic
+`/whisk.system/messagehub/createTopic` is an action to create a topic on Message Hub.
+
+| **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
+| ------------- | ---- | -------- | ------------ | ------- |------- |
+| topic | *string* | yes |  Topic Id in Message Hub | - | "XXXXX" |
+
+##### Usage
+```bash
+wsk action invoke /whisk.system/messagehub/createTopic -p topic 'CCCC' --blocking
 ```
-wsk trigger create <triggername> -p topic '<topic>' -p polling <milliseconds> --feed messagehub/kafkaFeed
+**orgId**, **apiKey** as well as **apiToken** parameters can be ignored if it is already passed to the package at binding time.
+
+Example of success response:
+```javascript
+{
+    "result": {
+        "result": "topic created successfully "
+    },
+    "status": "success",
+    "success": true
+}
 ```
-- *triggername* is the unique name of a trigger. This value is also used to create the consumer instance for kafka. This name must unique in the whole message hub instance.
-- *topic* is used for listening on a message hub topic for a trigger
-- *polling* is used to define the interval of polling, default value is 5000
-- messagehub/kafkaFeed create the feed, so that lifecycle events can control the trigger creation/deletion
+
+#### Delete Topic
+`/whisk.system/iot/deleteTopic` is an action to delete an existing topic. The user must take care of the correct id of the topic.
+
+| **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
+| ------------- | ---- | -------- | ------------ | ------- |------- |
+| topic | *string* | yes |  Topic Id in Message Hub | - | "XXXXX" |
+
+##### Usage
+```bash
+wsk action invoke /whisk.system/messagehub/deleteTopic -p topic 'CCCC' --blocking
+```
+
+Example of success response:
+```javascript
+{
+    "result": {
+        "result": "topic deletion successfully "
+    },
+    "status": "success",
+    "success": true
+}
+```
+
+#### Publish Messages
+`/whisk.system/messagehub/publish` is an action to publish a binary message to Message Hub on a specific topic. Json and Avro message formats are not supported, when using the Kafka REST Api on Message Hub.
+
+| **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
+| ------------- | ---- | -------- | ------------ | ------- |------- |
+| topic | *string* | yes |  Topic Id in Message Hub | - | "XXXXX" |
+| message | *string* | yes |  Binary Message content | - | "YYYYY" |
+
+##### Usage 
+```bash 
+wsk action invoke /whisk.system/messagehub/publish --param topic 'XXXXX' --param message 'YYYYY'  --blocking
+```
+Example of success response:
+```javascript
+{
+    "result": {
+        "key_schema_id": null,
+        "offsets": [
+            {
+                "error": null,
+                "error_code": null,
+                "offset": 298,
+                "partition": 0
+            }
+        ],
+        "value_schema_id": null
+    },
+    "status": "success",
+    "success": true
+}
+```
+## Feed
+#### Create trigger on topic
+`/whisk.system/messagehub/kafkaFeed` is an action, which handle the trigger lifecycle (create, delete) for Message Hub.
+
+| **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
+| ------------- | ---- | -------- | ------------ | ------- |------- |
+| topic | *string* | yes |  Topic Id in Message Hub | - | "XXXXX" |
+| polling | *integer* | no |  Polling intervall in ms | 5000 | 10000 |
+| feed | *string* | yes |  Feed action | - | "messagehub/kafkaFeed" |
+
+##### Usage
+```bash
+wsk trigger create <triggerName> -p topic 'XXXXX' -p polling 5000 --feed messagehub/kafkaFeed
+```
+
+Example of success response:
+```javascript
+{
+    "result": " trigger done creation"
+}
+```
+
+# Deploying Locally
+This package contains an install script that will create a package and add the actions into it :
+```shell
+git clone https://github.com/saschoff91/wsk-pkg-messagehub
+cd wsk-pkg-messagehub
+./install.sh <apihost> <authkey> <pathtowskcli>
+```
 
 # Further Work
-* Replace the use of kafka REST api with Kafka native client
+* Replace the use of Kafka REST api with Kafka native client
 * A kafka rest consumer gets deleted automaticly after 24 hours, avoid triggers without a specific consumer
-* Consumer format must switched to 'json' instead of 'binary'
+* Supported message format is binary, cause of the use of Kafka REST Api
+* Package can only deployed locally !!!
 
 # Contributing
 Please refer to [CONTRIBUTING.md](CONTRIBUTING.md)

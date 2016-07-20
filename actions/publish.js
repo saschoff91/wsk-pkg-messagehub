@@ -17,16 +17,17 @@
 var request = require('request');
 
 /**
- * Openwhisk action to cerate a topic in bluemix message hub
+ * Openwhisk action to get all topics from bluemix message hub instance
  * @param      {string}  restUrl                    (required)  MessageHub url instance
  * @param      {string}  restPort                   (required)  MessageHub port, default 443
  * @param      {string}  apikey                     (required)  MessageHub Api key
- * @param      {string}  topic                      (required)  MessageHub topic for creation
+ * @param      {string}  topic                      (required)  MessageHub topic for producing messages
+ * @param      {string}  message                    (required)  Binary message content
  * @return     {Object}                                         Done with the result of invocation
  **/
 
 function main(params) {
-	var requiredParams = ["restUrl", "restPort", 'apikey', 'topic'];
+	var requiredParams = ["restUrl", "restPort", 'apikey', 'topic', 'message'];
 
 	checkParameters(params, requiredParams, function(missingParams) {
 		if (missingParams != "") {
@@ -34,20 +35,24 @@ function main(params) {
 			return whisk.error("Missing required parameters: " + missingParams);
 		} else {
 
-			var url = 'https://'+params.restUrl+':'+params.restPort+'/admin/topics/'+params.topic;
+			//Using Kafka REST API on Message Hub only supports binary embedded format
+			var data = {records: [ { key: null, value: params.message }]};
 
 			var options = {
-					method: 'DELETE',
-					url: url,
-					headers: {
-						'X-Auth-Token': params.apikey,
-						'Content-Type': 'application/json'
-					}
+					url: 'https://'+params.restUrl+':'+params.restPort+'/topics/'+params.topic,
+					method: 'POST',
+					headers: { 
+						'X-Auth-Token': params.apikey
+					},
+					body: JSON.stringify(data)
 			};
 
+
 			request(options, function(err, res, body) {
-				if (!err && res.statusCode === 202) {
-					return whisk.done({result: "topic deleted successfully "});
+				if (!err && res.statusCode === 200) {
+					var parsedBody = JSON.parse(body);
+					console.log("Message successfully produced")
+					return whisk.done(parsedBody);
 
 				} else {
 					return whisk.error({
@@ -57,12 +62,25 @@ function main(params) {
 					});
 				}
 			});
-
-
-
 		}
 	});
-	
+
+    /*
+    * Cause of missing supported embedded json/avro format, this produces messages for master thesis demo scenario
+    * Have a look at this doc https://console.ng.bluemix.net/docs/services/MessageHub/index.html#messagehub
+	if (input.sensorId) {
+		//if report is from sensor
+		var data = {records: [{ key : null , value: "{"+input.sensorId +" / " +   input.location +" / "+ input.sensorType +" / "+ input.value + "/ " }]};
+	} else {
+		if (input.title) {
+			// if report is from human
+			var data = {records: [ {key: null, value: "{"+ input.title+" / " + input.description +" / " + input.location +" / " + input.attachment +" / " + input.author+"/ " } ]};
+		} else {
+			whisk.error({error: 'Unkown report input!'});
+		}
+	}
+	 */
+
 	return whisk.async();
 }
 

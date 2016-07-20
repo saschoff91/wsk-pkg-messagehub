@@ -33,12 +33,14 @@ function main(params) {
 			console.error("Missing required parameters: " + missingParams);
 			return whisk.error("Missing required parameters: " + missingParams);
 		} else {
+			var body = {name: params.topic};
 
-			var url = 'https://'+params.restUrl+':'+params.restPort+'/admin/topics/'+params.topic;
+			var url = 'https://'+params.restUrl+':'+params.restPort+'/admin/topics';
 
 			var options = {
-					method: 'DELETE',
+					method: 'POST',
 					url: url,
+					body: JSON.stringify(body),
 					headers: {
 						'X-Auth-Token': params.apikey,
 						'Content-Type': 'application/json'
@@ -47,7 +49,7 @@ function main(params) {
 
 			request(options, function(err, res, body) {
 				if (!err && res.statusCode === 202) {
-					return whisk.done({result: "topic deleted successfully "});
+					return whisk.done({result: "topic created successfully "});
 
 				} else {
 					return whisk.error({
@@ -57,13 +59,11 @@ function main(params) {
 					});
 				}
 			});
-
-
-
 		}
 	});
-	
+
 	return whisk.async();
+
 }
 
 /**
