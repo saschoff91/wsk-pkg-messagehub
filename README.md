@@ -1,5 +1,6 @@
 Openwhisk Message Hub Package
 ============================
+[![Build Status](https://travis-ci.org/saschoff91/wsk-pkg-messagehub.svg?branch=master)](https://travis-ci.org/saschoff91/wsk-pkg-messagehub)
 
 This repository includes actions and feeds for [IBM Bluemix](http://www.ibm.com/cloud-computing/bluemix/) service Message Hub. 
 The whole communication is based on the [Kafka REST API](http://docs.confluent.io/2.0.0/kafka-rest/docs/index.html).
