@@ -43,7 +43,7 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
 
   "get topic action" should "return all topics" in {
     val actionName = "/whisk.system/messagehub/getTopics"
-    val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, , "apikey" -> apikey.toJson);
+    val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, "apikey" -> apikey.toJson);
 
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
       _.fields("response").toString should include(s"""""markedForDeletion": false"""")
@@ -52,7 +52,7 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
 
   "create topic action" should "return, create successfull" in {
     val actionName = "/whisk.system/messagehub/createTopic"
-    val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, , "apikey" -> apikey.toJson, "topic" -> "testTopic".toJson );
+    val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, "apikey" -> apikey.toJson, "topic" -> "testTopic".toJson );
 
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
       _.fields("response").toString should include(s"""""topic created successfully"""")
