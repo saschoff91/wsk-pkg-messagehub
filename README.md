@@ -102,11 +102,19 @@ Example of success response:
 
 #### Delete Topic
 `/whisk.system/iot/deleteTopic` is an action to delete an existing topic. The user must take care of the correct id of the topic.
+<<<<<<< HEAD
 
 | **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
 | ------------- | ---- | -------- | ------------ | ------- |------- |
 | topic | *string* | yes |  Topic Id in Message Hub | - | "XXXXX" |
 
+=======
+
+| **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
+| ------------- | ---- | -------- | ------------ | ------- |------- |
+| topic | *string* | yes |  Topic Id in Message Hub | - | "XXXXX" |
+
+>>>>>>> ecb43d36df88f36c780cf2e568a030f1e3bdda4c
 ##### Usage
 ```bash
 wsk action invoke /whisk.system/messagehub/deleteTopic -p topic 'CCCC' --blocking
@@ -125,12 +133,21 @@ Example of success response:
 
 #### Publish Messages
 `/whisk.system/messagehub/publish` is an action to publish a binary message to Message Hub on a specific topic. Json and Avro message formats are not supported, when using the Kafka REST Api on Message Hub.
+<<<<<<< HEAD
 
 | **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
 | ------------- | ---- | -------- | ------------ | ------- |------- |
 | topic | *string* | yes |  Topic Id in Message Hub | - | "XXXXX" |
 | message | *string* | yes |  Binary Message content | - | "YYYYY" |
 
+=======
+
+| **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
+| ------------- | ---- | -------- | ------------ | ------- |------- |
+| topic | *string* | yes |  Topic Id in Message Hub | - | "XXXXX" |
+| message | *string* | yes |  Binary Message content | - | "YYYYY" |
+
+>>>>>>> ecb43d36df88f36c780cf2e568a030f1e3bdda4c
 ##### Usage 
 ```bash 
 wsk action invoke /whisk.system/messagehub/publish --param topic 'XXXXX' --param message 'YYYYY'  --blocking
@@ -199,4 +216,3 @@ Copyright 2015-2016 IBM Corporation
 Licensed under the [Apache License, Version 2.0 (the "License")](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 Unless required by applicable law or agreed to in writing, software distributed under the license is distributed on an "as is" basis, without warranties or conditions of any kind, either express or implied. See the license for the specific language governing permissions and limitations under the license.
-

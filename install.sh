@@ -67,3 +67,17 @@ $WSK_CLI --apihost $APIHOST action update --auth $AUTH --shared yes messagehub/p
 
 $WSK_CLI --apihost $APIHOST action update --auth $AUTH --shared yes messagehub/kafkaFeed $PACKAGE_HOME/feeds/kafkaFeed.js \
 -a description 'Create feed action for trigger lifecycle events' \
+=======
+
+$WSK_CLI --apihost $APIHOST action update --auth $AUTH --shared yes messagehub/deleteTopic $PACKAGE_HOME/actions/deleteTopic.js \
+-a description 'Delete a topic in bluemix message hub' \
+    -a parameters '[{"name":"restUrl","required":true,"bindTime":true,"description":"Message Hub Kafka rest url"},{"name":"restPort","required":true,"bindTime":true,"description":"Message Hub Kafka rest port, e.g 443"},{"name":"apikey","required":true,"bindTime":true,"type":"password","description":"Message Hub api key"},{"name":"topic","required":true,"bindTime":false,"type":"password","description":"Topic id for creation"}]' \
+    -a sampleInput '{"restUrl":"XXXXXX","restPort":"YYYYYY","apikey":"WWWWWW","topic":"ZZZZZ"}' \
+-a sampleOutput '{ "result": "topic deleted successfully " }'
+
+$WSK_CLI --apihost $APIHOST action update --auth $AUTH --shared yes messagehub/publish $PACKAGE_HOME/actions/publish.js \
+-a description 'Create a new binary message on a specific topic' \
+    -a parameters '[{"name":"restUrl","required":true,"bindTime":true,"description":"Message Hub Kafka rest url"},{"name":"restPort","required":true,"bindTime":true,"description":"Message Hub Kafka rest port, e.g 443"},{"name":"apikey","required":true,"bindTime":true,"type":"password","description":"Message Hub api key"},{"name":"topic","required":true,"bindTime":false,"description":"Topic id for creation"},{"name":"message","required":true,"bindTime":false,"description":"Binary message to publish on topic"}]' \
+    -a sampleInput '{"restUrl":"XXXXXX","restPort":"YYYYYY","apikey":"WWWWWW","topic":"ZZZZZ", "message": "AAAAAAA"}' \
+-a sampleOutput '{"result":{"key_schema_id":null,"offsets":[{"error":null,"error_code":null,"offset":1,"partition":0}],"value_schema_id":null},"status":"success","success":true}'
+
