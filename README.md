@@ -5,19 +5,19 @@ Openwhisk Message Hub Package
 ```
 wsk-pkg-messagehub/
 ├── Getting started
-│   └── Create Message Hub Instance
+│   ├── Create Message Hub Instance
 │   └── Deploy Trigger Provider
 ├── Actions
-│   └── Get Topics
-│   └── Create Topic
-│   └── Delete Topic
+│   ├── Get Topics
+│   ├── Create Topic
+│   ├── Delete Topic
 │   └── Publish Message
 ├── Feed
 │   └── Create Trigger on Topic
 ├── Deploy Locally
 ├── Further Work
 ├── Contributing
-├── License
+└── License
 ```
 
 This repository includes actions and feeds for [IBM Bluemix](http://www.ibm.com/cloud-computing/bluemix/) service Message Hub. 
