@@ -41,11 +41,10 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
   behavior of "MessageHub Package"
 
   "get topic action" should "return all topics" in {
-    val actionName = "/whisk.system/messagehub/getTopics"
+    val actionName = "/whisk.system/messagehub/getTopics";
     val params = HashMap("restUrl" -> restUrl.toJson, "restPort" -> restPort.toJson, "apikey" -> apikey.toJson);
-
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
-      _.fields("response").toString should include(s"""markedForDeletion":")
+      _.fields("response").toString should include(""""markedForDeletion":""")
     }
   }
 
@@ -56,7 +55,7 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
                          "apikey" -> apikey.toJson, 
                          "topic" -> "testTopic".toJson );
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
-      _.fields("response").toString should include(s"""""topic created successfully"""")
+      _.fields("response").toString should include("""successfully""")
     }
   }
 
@@ -68,18 +67,18 @@ class MessageHubTests extends TestHelpers with WskTestHelpers with Matchers {
                          "topic" -> "testTopic".toJson, 
                          "message" -> "test message input".toJson );
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
-      _.fields("response").toString should include(s"""""offsets"""")
+      _.fields("response").toString should include("""offsets""")
     }
   }
 
-      "delete topic action" should "return, deletion successfull" in {
+    "delete topic action" should "return, deletion successfull" in {
     val actionName = "/whisk.system/messagehub/deleteTopic"
     val params = HashMap("restUrl" -> restUrl.toJson, 
                          "restPort" -> restPort.toJson, 
                          "apikey" -> apikey.toJson, 
                          "topic" -> "testTopic".toJson );
     withActivation(wsk.activation, wsk.action.invoke(actionName, params)) {
-      _.fields("response").toString should include(s"""""topic deleted successfully"""")
+      _.fields("response").toString should include("""successfully""")
     }
   }
 
