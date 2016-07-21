@@ -45,7 +45,7 @@ wsk package update messagehub -p restUrl '<messageHubRestURL>' -p restPort '<por
 ```
 
 #### Get Topics
-`/whisk.system/iot/getTopics` returns all created on a Message Hub instance
+`/whisk.system/messagehub/getTopics` returns all created on a Message Hub instance
 
 To use this action, you need to pass the required parameters (refer to the table above)
 ```bash
@@ -101,7 +101,7 @@ Example of success response:
 ```
 
 #### Delete Topic
-`/whisk.system/iot/deleteTopic` is an action to delete an existing topic. The user must take care of the correct id of the topic.
+`/whisk.system/messagehub/deleteTopic` is an action to delete an existing topic. The user must take care of the correct id of the topic.
 
 
 | **Parameter** | **Type** | **Required** | **Description** | **Default** | **Example** |
