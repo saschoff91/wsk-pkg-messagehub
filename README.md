@@ -2,7 +2,26 @@ Openwhisk Message Hub Package
 ============================
 [![Build Status](https://travis-ci.org/saschoff91/wsk-pkg-messagehub.svg?branch=master)](https://travis-ci.org/saschoff91/wsk-pkg-messagehub)
 
+```
+wsk-pkg-messagehub/
+├── Getting started
+│   └── Create Message Hub Instance
+│   └── Deploy Trigger Provider
+├── Actions
+│   └── Get Topics
+│   └── Create Topic
+│   └── Delete Topic
+│   └── Publish Message
+├── Feed
+│   └── Create Trigger on Topic
+├── Deploy Locally
+├── Further Work
+├── Contributing
+├── License
+```
+
 This repository includes actions and feeds for [IBM Bluemix](http://www.ibm.com/cloud-computing/bluemix/) service Message Hub. 
+
 The whole communication is based on the [Kafka REST API](http://docs.confluent.io/2.0.0/kafka-rest/docs/index.html).
 
 ![MessageHub overview](https://github.com/saschoff91/wsk-pkg-messagehub/blob/master/messagehub%20overview.jpg "MessageHub Package Workflow")
