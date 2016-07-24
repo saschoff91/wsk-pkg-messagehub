@@ -1,7 +1,7 @@
 Openwhisk Message Hub Package
 ============================
 [![Build Status](https://travis-ci.org/saschoff91/wsk-pkg-messagehub.svg?branch=master)](https://travis-ci.org/saschoff91/wsk-pkg-messagehub)
-
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 ```
 wsk-pkg-messagehub/
 ├── Getting started
