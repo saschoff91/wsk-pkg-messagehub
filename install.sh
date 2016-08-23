@@ -66,4 +66,4 @@ $WSK_CLI --apihost $APIHOST action update --auth $AUTH --shared yes messagehub/p
 -a sampleOutput '{"result":{"key_schema_id":null,"offsets":[{"error":null,"error_code":null,"offset":1,"partition":0}],"value_schema_id":null},"status":"success","success":true}'
 
 $WSK_CLI --apihost $APIHOST action update --auth $AUTH --shared yes messagehub/kafkaFeed $PACKAGE_HOME/feeds/kafkaFeed.js \
--a description 'Create feed action for trigger lifecycle events' \
+-a description 'Create feed action for trigger lifecycle events'
