@@ -427,7 +427,6 @@ function invokeWhiskAction(id, message) {
 	var method = 'FUNCTION: invokeWhiskAction';
 	var tid = "??";
 	logger.info(id, method, 'for trigger', id, 'invoking action', id, 'with incoming message', message);
-	var apiKey = "52a41dd3-ecc0-4eb2-af96-46af7083fa1c:eqd3fBvDmFpUZbU5WmuKoKucMAFEpMEkV21byvRYH7GIcCoAS45AJGMu2XLB5mUF";
 
 	var form = {payload:message};
 
@@ -441,8 +440,8 @@ function invokeWhiskAction(id, message) {
 			method: 'POST',
 			uri: uri,
 			auth: {
-				user: auth[0],
-				pass: auth[1]
+				user: feeds[id].apikey[0],
+				pass: feeds[id].apikey[1]
 			},
 			json:form
 	};
